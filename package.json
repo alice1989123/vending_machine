@@ -1,0 +1,18 @@
+{
+  "name": "vending-machine",
+  "version": "1.0.0",
+  "description": "A Cardano NFTs vending machine",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Alicia Basilio",
+  "license": "ISC",
+  "dependencies": {
+    "@blockfrost/blockfrost-js": "^4.0.1",
+    "@emurgo/cardano-serialization-lib-nodejs": "^10.0.4",
+    "axios": "^0.25.0",
+    "dotenv": "^16.0.0",
+    "mongodb": "^4.4.1"
+  }
+}

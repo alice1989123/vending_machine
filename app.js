@@ -244,5 +244,5 @@ async function runPeriodically(timetoLoop, blockTime) {
   })();
 }
 
-runPeriodically(60 * 1000, 1647894151); // 1647894151 checking every 1 minutes seems good , UNIX time for start minitng
+runPeriodically(60 * 1000, 1647867608); // 1647894151 checking every 1 minutes seems good , UNIX time for start minitng
 //registerpassedTx();

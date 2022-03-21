@@ -157,7 +157,16 @@ async function hasRugPull(address) {
   }
 }
 
-module.exports = { sendTokens, shuffle, sleep, hasRugPull };
+async function getBlockTime() {
+  const latestBlock = await blockFrost.blocksLatest();
+  const latestTime = latestBlock.time;
+
+  console.log(`the latest block has time ${latestTime}`);
+  return latestTime;
+}
+
+module.exports = { sendTokens, shuffle, sleep, hasRugPull, getBlockTime };
+
 /* 
 hasRugPull(
   "addr_test1qzexn4e06hhv5cy7wct2xlsshdss3shlvcaef5kedh6zf5mlh3trz5tef0zse9ahv26zs69jrf5h3q0kntwlcldcwv9qwyspfv"

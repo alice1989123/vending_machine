@@ -140,7 +140,7 @@ const registerTransactionstoPay = async function (blockTime) {
           );
           //console.log(details);
 
-          await sleep(60000);
+          await sleep(60000); // waiting one minute for confirmation is probably not enought in mainnet but we  check if transaction has not been confirmed outside this fuction
         } else {
           return;
         }
@@ -244,5 +244,5 @@ async function runPeriodically(timetoLoop, blockTime) {
   })();
 }
 
-runPeriodically(10000, 1647821694);
+runPeriodically(5 * 60 * 1000, 1647894151); //checking every 5 minutes seems good , UNIX time for 14 UTC
 //registerpassedTx();

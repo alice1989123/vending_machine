@@ -120,7 +120,7 @@ async function sendTokens(
       changAndMissingValue
     );
   } else {
-    const refund = change + numberofTokens * pricePeerNFt;
+    const refund = change + numberofTokens * pricePeerNFt - 300000; // the quit a little amount to cover the fees
     console.log(
       `User does not have Rug Pull, we send this refund ${refund / 1000000} ADA`
     );

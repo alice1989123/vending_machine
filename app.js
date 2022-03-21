@@ -36,12 +36,27 @@ const registerpassedTx = async function () {
   );
 };
 
-const registerTransactionstoPay = async function () {
-  const TransactionsInBlockChain = await blockFrost.addressesTransactions(
-    serverAddress,
-    { order: "desc" }
+const registerTransactionstoPay = async function (blockTime) {
+  let TransactionsInBlockChain = [];
+  for (let i = 1; ; i++) {
+    // for some reason blockfrost page 0 is the same as page 1 so we start in 1
+    const TransactionsInBlockChaini = await blockFrost.addressesTransactions(
+      serverAddress,
+      { order: "desc", page: i }
+    );
+    TransactionsInBlockChain = [
+      ...TransactionsInBlockChain,
+      ...TransactionsInBlockChaini,
+    ];
+    if (TransactionsInBlockChaini.length == 0) {
+      break;
+    }
+  }
+
+  TransactionsInBlockChain = TransactionsInBlockChain.filter(
+    (x) => x.block_time > blockTime
   );
-  //console.log(TransactionsInBlockChain);
+  //console.log(TransactionsInBlockChain.length);
 
   TransactionsInBlockChain.forEach((tx) => (tx._id = tx.tx_hash));
 
@@ -51,6 +66,8 @@ const registerTransactionstoPay = async function () {
   const TxToPay = TransactionsInBlockChain.filter(function (tx) {
     return !payedTxHashes.includes(tx.tx_hash);
   });
+
+  //console.log(TxToPay);
 
   async function getDoubts() {
     // This functions gets the data payed to the address from the buyer
@@ -63,12 +80,18 @@ const registerTransactionstoPay = async function () {
         const outpusToServer = details.outputs.filter(function (x) {
           return x.address == serverAddress;
         });
+        const blockTime = TxToPay[j].block_time;
 
         const amountPayedtoServer = outpusToServer
           .map((x) => parseInt(x.amount[0].quantity))
           .reduce((x, y) => x + y, 0);
         if (senderAddress !== serverAddress && amountPayedtoServer > 2000000) {
-          currentDoubts.push([senderAddress, amountPayedtoServer, hash]);
+          currentDoubts.push([
+            senderAddress,
+            amountPayedtoServer,
+            hash,
+            blockTime,
+          ]);
         }
       }
     } catch (e) {
@@ -78,17 +101,19 @@ const registerTransactionstoPay = async function () {
   }
 
   const transactionsToPay = await getDoubts();
+  //console.log(transactionsToPay);
+  //return;
 
-  const getDoubtsOuputs = transactionsToPay.map((tx) => classyfyTx(tx));
-
+  let getDoubtsOuputs = transactionsToPay.map((tx) => classyfyTx(tx));
+  getDoubtsOuputs.sort((x, y) => x.blockTime - y.blockTime);
   //console.log(getDoubtsOuputs);
 
-  const payDoubs = async function payDoubs() {
+  const payDoubs = async function payDoubs(Doubts) {
     try {
-      for (let j = 0; j < getDoubtsOuputs.length; j++) {
-        const tokensqty = getDoubtsOuputs[j].quantityOfNFTsToSend;
-        const address = getDoubtsOuputs[j].senderAddress;
-        const change = getDoubtsOuputs[j].change;
+      for (let j = 0; j < Doubts.length; j++) {
+        const tokensqty = Doubts[j].quantityOfNFTsToSend;
+        const address = Doubts[j].senderAddress;
+        const change = Doubts[j].change;
 
         const hash_ = await sendTokens(
           serverAddress,
@@ -103,7 +128,7 @@ const registerTransactionstoPay = async function () {
           await registerTransaction(
             [
               {
-                _id: getDoubtsOuputs[j].hash,
+                _id: Doubts[j].hash,
                 address: address,
                 change: change,
                 tokensqty: tokensqty,
@@ -125,7 +150,7 @@ const registerTransactionstoPay = async function () {
     }
   };
 
-  const hashes = await payDoubs();
+  const hash = await payDoubs(getDoubtsOuputs.slice(0, 1)); // better we pay one by one so we can wait until the last transaction gets confirmed in the blockchain before submiting the next
 };
 
 function classyfyTx(Doubt) {
@@ -133,6 +158,7 @@ function classyfyTx(Doubt) {
   const senderAddress = Doubt[0];
   const adarecived = Doubt[1];
   const hash = Doubt[2];
+  const blockTime = Doubt[3];
 
   let quantityOfNFTsToSend;
   let change;
@@ -161,7 +187,7 @@ function classyfyTx(Doubt) {
     change
   ); */
 
-  return { quantityOfNFTsToSend, senderAddress, change, hash };
+  return { quantityOfNFTsToSend, senderAddress, change, hash, blockTime };
 }
 
 async function getLastTxConfirmation() {
@@ -192,10 +218,11 @@ async function getWalletData(addr) {
   }
 }
 
-async function runPeriodically(time) {
+async function runPeriodically(timetoLoop, blockTime) {
+  // how often the loop querys the blockchain in milisecconds and the block_time time at wich it starts looking for payed transactions
   (async () => {
     while (true) {
-      await sleep(time);
+      await sleep(timetoLoop);
       try {
         console.log("We are checking if last payment was succesfull");
 
@@ -208,7 +235,7 @@ async function runPeriodically(time) {
           console.log(
             "Now We are fetching the Blockchain to see if any payment has arrived..."
           );
-          await registerTransactionstoPay();
+          await registerTransactionstoPay(blockTime);
         }
       } catch (e) {
         console.log(e);
@@ -217,5 +244,5 @@ async function runPeriodically(time) {
   })();
 }
 
-runPeriodically(10000);
+runPeriodically(10000, 1647821694);
 //registerpassedTx();

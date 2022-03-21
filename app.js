@@ -52,6 +52,7 @@ const registerTransactionstoPay = async function (blockTime) {
       break;
     }
   }
+  //console.log(TransactionsInBlockChain.slice(0, 5));
 
   TransactionsInBlockChain = TransactionsInBlockChain.filter(
     (x) => x.block_time > blockTime
@@ -106,8 +107,7 @@ const registerTransactionstoPay = async function (blockTime) {
 
   let getDoubtsOuputs = transactionsToPay.map((tx) => classyfyTx(tx));
   getDoubtsOuputs.sort((x, y) => x.blockTime - y.blockTime);
-  //console.log(getDoubtsOuputs);
-
+  console.log(` we must pay this => ${JSON.stringify(getDoubtsOuputs)}`);
   const payDoubs = async function payDoubs(Doubts) {
     try {
       for (let j = 0; j < Doubts.length; j++) {
@@ -199,7 +199,7 @@ async function getLastTxConfirmation() {
   const serverTxs = await blockFrost.addressesTransactions(serverAddress, {
     order: "desc",
   });
-  //console.log(addressToBePayed);
+  //console.log(serverTxs);
   //console.log(serverTxs.map((x) => x.tx_hash).slice(0, 20));
   const isTxConfirmed = serverTxs.map((x) => x.tx_hash).includes(lastHash);
   //console.log(isTxConfirmed);
@@ -244,5 +244,5 @@ async function runPeriodically(timetoLoop, blockTime) {
   })();
 }
 
-runPeriodically(5 * 60 * 1000, 1647894151); //checking every 5 minutes seems good , UNIX time for 14 UTC
+runPeriodically(60 * 1000, 1647894151); // 1647894151 checking every 1 minutes seems good , UNIX time for start minitng
 //registerpassedTx();

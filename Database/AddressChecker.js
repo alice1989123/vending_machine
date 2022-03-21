@@ -10,7 +10,7 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
 });
 
-const databaseName = process.env.TESTNET
+const databaseName = JSON.parse(process.env.TESTNET)
   ? "RugPulls_Vending_Machine_testnet"
   : "RugPulls_Vending_Machine";
 

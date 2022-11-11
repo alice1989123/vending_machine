@@ -1,7 +1,7 @@
-const pricePeerNFt = 5000000; //100000000;
+const pricePeerNFt = 100000000;
 const maximumNFTs = 1000;
 const policy = "94da45ff1167645e70282e632a936f58879c1cbeb8741a691e909ceb"; // "1747913721df35b3e802cd9904b1cba194d582ac7f34c2ffd41f9ce2";
-const priceWhitelist = 5000000; //85000000;
+const priceWhitelist = 85000000;
 inversors = [
   {
     address:

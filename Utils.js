@@ -1,8 +1,9 @@
 "use strict";
 const { sendNFTs, sendAda } = require("./Cardano/Wallet/Wallet");
 const blockFrost = require("./Cardano/BlockFrost/blockFrost");
-const { pricePeerNFt } = require("./constants");
+const { pricePeerNFt, inversors } = require("./constants");
 const fs = require("fs");
+const { whiteList } = require("./whiteList");
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -78,54 +79,53 @@ async function sendTokens(
   address,
   numberofTokens,
   change,
-  policy
+  policy,
+  paymentToinverstors
 ) {
-  const hasRugPulls = await hasRugPull(address);
-
   let selectedTokens;
   let missingTokens;
   let selectedUTXOs;
   let remainingUTXOs;
 
-  if (hasRugPulls) {
-    console.log("user has RugPull");
+  /*   if (whiteList) {
+    console.log("user is in whiteList"); */
 
-    const info = await selectTokens(policy, sender, numberofTokens);
+  const info = await selectTokens(policy, sender, numberofTokens);
 
-    selectedTokens = info.selectedTokens;
-    selectedUTXOs = info.selectedUTXOs;
-    remainingUTXOs = info.remainingUTXOs;
-    missingTokens = info.missingTokens;
-    //console.log(policy, sender, numberofTokens);
+  selectedTokens = info.selectedTokens;
+  selectedUTXOs = info.selectedUTXOs;
+  remainingUTXOs = info.remainingUTXOs;
+  missingTokens = info.missingTokens;
+  //console.log(policy, sender, numberofTokens);
 
-    //console.log(sender, tokens);
-    //console.log(tokens, change, missingTokens, pricePeerNFt);
-    const changAndMissingValue = change + missingTokens * pricePeerNFt; // in case there are no tokens id adds the value of the missing tokens
-    /* console.log(
-      sender,
-      prvKeysSender,
-      address,
-      selectedTokens,
-      selectedUTXOs,
-      remainingUTXOs,
-      changAndMissingValue
-    ); */
-    return sendNFTs(
-      sender,
-      prvKeysSender,
-      address,
-      selectedTokens,
-      selectedUTXOs,
-      remainingUTXOs,
-      changAndMissingValue
-    );
-  } else {
+  //console.log(sender, tokens);
+  //console.log(tokens, change, missingTokens, pricePeerNFt);
+  let refundFee = 0;
+  if ((numberofTokens == missingTokens) & (missingTokens != 0)) {
+    refundFee = 250000;
+  }
+
+  console.log(change, missingTokens, pricePeerNFt, refundFee);
+  const changAndMissingValue =
+    change + missingTokens * pricePeerNFt - refundFee; // in case there are no tokens id adds the value of the missing tokens
+  return sendNFTs(
+    sender,
+    prvKeysSender,
+    address,
+    selectedTokens,
+    selectedUTXOs,
+    remainingUTXOs,
+    changAndMissingValue,
+    paymentToinverstors
+  );
+
+  /*  } else {
     const refund = change + numberofTokens * pricePeerNFt - 300000; // the quit a little amount to cover the fees
     console.log(
       `User does not have Rug Pull, we send this refund ${refund / 1000000} ADA`
     );
     return sendAda(sender, prvKeysSender, refund, address);
-  }
+  } */
 }
 
 async function hasRugPull(address) {
@@ -156,6 +156,17 @@ async function hasRugPull(address) {
     return false;
   }
 }
+async function isWhiteListed(address) {
+  const policyes = fs.readFileSync("./policies").toString().split("\n");
+
+  //console.log(address.length);
+  if (address.length > 70) {
+    const address_ = await blockFrost.addresses(address);
+    const stakeAddress = address_.stake_address;
+    return whiteList.includes(stakeAddress);
+  }
+  return false;
+}
 
 async function getBlockTime() {
   const latestBlock = await blockFrost.blocksLatest();
@@ -165,7 +176,14 @@ async function getBlockTime() {
   return latestTime;
 }
 
-module.exports = { sendTokens, shuffle, sleep, hasRugPull, getBlockTime };
+module.exports = {
+  sendTokens,
+  shuffle,
+  sleep,
+  hasRugPull,
+  isWhiteListed,
+  getBlockTime,
+};
 
 /* 
 hasRugPull(

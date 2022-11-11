@@ -2,10 +2,26 @@ const wallet = require("./Cardano/Wallet/Wallet");
 const keys = require("./Cardano/Keys/keys");
 //console.log(keys.address);
 //console.log(keys.address);
-
-/* wallet.sendAda(
+console.log(keys);
+const BlockFrost = require("./Cardano/BlockFrost/blockFrost");
+/* 
+wallet.sendAda(
   keys.address,
   keys.prvKey,
-  3000000,
-  "addr1qxpw3qd6l3xyu6l46d6rgrp4emq5x68g589029z2ty3crgk7edsdfc2n5rhvl2hmn498cwd67803mm9u2ktxcgjhj9ms765pws"
+  100*10^6,
+  keys()
 ); */
+/* 
+wallet.sendAll(
+  keys.address,
+  keys.prvKey,
+  "addr1q88604np2z4hkl9a78dhuxasnssrxzk5kz497yvw4wq7jjp7vt8s8tygau8fl40vg3t7gxdzkq7uxl8sqmaqqkdxca0sg9yp73"
+); */
+
+console.log(keys(180).address);
+wallet.sendAda(
+  keys(178).address,
+  keys(178).prvkey,
+  100000000,
+  keys(180).address
+);

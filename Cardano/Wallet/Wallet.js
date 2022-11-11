@@ -107,6 +107,27 @@ async function sendAda(senderAddress, senderprvKeys, lovelaces, address) {
   return hash;
 }
 
+async function sendAll(senderAddress, senderprvKeys, address) {
+  const reciverAddress = wasm.Address.from_bech32(address);
+  const wasmSender = wasm.Address.from_bech32(senderAddress);
+  //const utoxs_ = await blockFrost.addressesUtxos(senderAddress);
+  const protocolParameters = await getProtocolParams();
+
+  const utoxs__ = await getUtxos(senderAddress);
+
+  const txBuilder = InitTx(protocolParameters);
+
+  utoxs__.forEach((utxo) =>
+    txBuilder.add_input(wasmSender, utxo.input(), utxo.output().amount())
+  );
+
+  txBuilder.add_change_if_needed(reciverAddress);
+  const txBody = txBuilder.build();
+  const tx = wasm.Transaction.new(txBody, wasm.TransactionWitnessSet.new());
+  const hash = await SignAndSend(tx, senderprvKeys);
+  return hash;
+}
+
 async function sendNFTs(
   sender,
   prvKeysSender,
@@ -114,7 +135,8 @@ async function sendNFTs(
   NFTamount,
   selectedUTXOs,
   remainingUTXOs,
-  change
+  change,
+  additionalOutputs
 ) {
   //console.log(sender, prvKeysSender, address, NFTamount, change);
   const protocolParameters = await getProtocolParams();
@@ -123,6 +145,8 @@ async function sendNFTs(
 
   let NFTminvalue;
   let totalValue;
+  let additionalOutputswasm = [];
+
   if (NFTamount.length != 0) {
     NFTminvalue = wasm.Value.new(
       wasm.min_ada_required(
@@ -134,6 +158,15 @@ async function sendNFTs(
   } else {
     NFTminvalue = wasm.Value.new(wasm.BigNum.from_str("0"));
   }
+  console.log(additionalOutputs);
+  additionalOutputs.forEach((x) => {
+    if (x.payment >= 2000000) {
+      additionalOutputswasm.push([
+        wasm.Address.from_bech32(x.x),
+        wasm.BigNum.from_str(`${x.payment}`),
+      ]);
+    }
+  });
 
   totalValue = NFTminvalue.checked_add(wasmchange).checked_add(NFTvalue);
 
@@ -158,25 +191,13 @@ async function sendNFTs(
     .map((x) => JSON.stringify(x))
     .filter((y) => NFTamount.map((z) => JSON.stringify(z)).includes(y));
   console.log(`we are sending this tokens!! :D ==> ${interesection}`);
-  /* console.log(
-    NFTamount.map((x) => JSON.stringify(x)),
-    mergedSelectedAmounts.map((x) => JSON.stringify(x)),
-    interesection
-  ); */
 
-  /*  console.log(mergedSelectedAmounts, `interesection = ${interesection}`);
-
-  console.log(
-    selectedUTXOs.map((x) => x.amount),
-    NFTamount
-  ); */
-  const utoxsNFTs = utxosBloqtoWasm(selectedUTXOs);
-  const remainingUtxos = utxosBloqtoWasm(remainUTXOsSOrted);
+  const utoxsNFTs = utxosBloqtoWasm(selectedUTXOs, address);
+  const remainingUtxos = utxosBloqtoWasm(remainUTXOsSOrted, address);
 
   //console.log(utoxsNFTs.length, remainingUtxos.length);
 
   const maxFee = wasm.Value.new(wasm.BigNum.from_str("1000000")); // 2 ADA of fee is a lot but is just for the coinselection
-
   function satisfaction(utxos) {
     //this Function is positive if the merged aoutput has enoguth ada left to cover the ada amputn needed to split the nft
     const amounts = utxos.map((x) => x.output().amount());
@@ -203,6 +224,11 @@ async function sendNFTs(
       )
         .checked_add(maxFee)
         .checked_add(totalValue);
+      additionalOutputswasm.forEach((output) => {
+        console.log(output);
+        coinsRequired = coinsRequired.checked_add(wasm.Value.new(output[1]));
+      });
+
       const satisfaction =
         parseInt(splitedAmount.coin().to_str()) -
         parseInt(coinsRequired.coin().to_str());
@@ -231,12 +257,20 @@ async function sendNFTs(
   //console.log(value.coin().to_str());
   const outPutNFTvalue = wasm.TransactionOutput.new(reciverAddress, totalValue);
 
-  const outputs = wasm.TransactionOutputs.new();
+  const outputs = [];
   //console.log(outputs);
   //console.log(outPutNFTvalue.amount().coin().to_str());
-  outputs.add(outPutNFTvalue);
+  outputs.push(outPutNFTvalue);
+  console.log(additionalOutputswasm);
+  additionalOutputswasm.forEach((output) =>
+    outputs.push(
+      wasm.TransactionOutput.new(output[0], wasm.Value.new(output[1]))
+    )
+  );
 
-  txBuilder.add_output(outPutNFTvalue);
+  outputs.forEach((outPut) => {
+    txBuilder.add_output(outPut);
+  });
 
   utxosNeededToSatisface.forEach((utxo) =>
     txBuilder.add_input(
@@ -297,7 +331,7 @@ const amountToValue = (assets) => {
   return value;
 };
 
-function utxosBloqtoWasm(utxos_) {
+function utxosBloqtoWasm(utxos_, address) {
   let utxos = [];
 
   utxos_.forEach((element) => {
@@ -309,7 +343,7 @@ function utxosBloqtoWasm(utxos_) {
     );
 
     const output = wasm.TransactionOutput.new(
-      wasm.Address.from_bech32(keys.address),
+      wasm.Address.from_bech32(address),
       value
     );
 
@@ -342,7 +376,7 @@ async function getUtxos(addr) {
   return utxos;
 }
 
-module.exports = { sendNFTs: sendNFTs, sendAda: sendAda };
+module.exports = { sendNFTs: sendNFTs, sendAda: sendAda, sendAll: sendAll };
 
 //getProtocolParams().then((r) => console.log(r));
 

@@ -11,8 +11,8 @@ const client = new MongoClient(uri, {
 });
 
 const databaseName = JSON.parse(process.env.TESTNET)
-  ? "RugPulls_Vending_Machine_testnet"
-  : "RugPulls_Vending_Machine";
+  ? "Prima_Vending_Machine_testnet"
+  : "Prima_Vending_Machine";
 
 async function registerTransaction(transactions, collection) {
   //We connecto to DB
